@@ -1,3 +1,19 @@
+import struct
+import random
+import sys
+import os
+sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
+import game
+import threading
+
+def generate_unique_id(ID_list):
+    """Function to generate a unique ID that is not in the ID_list."""
+    while True:
+        id = random.randint(0, 255)
+        if id not in ID_list:
+            ID_list.append(id)
+            return id
+
 def validate_input(input_string):
     """Validate that the input string does not contain the forbidden character '|'."""
     if '|' in input_string:
@@ -5,28 +21,50 @@ def validate_input(input_string):
         return False
     return True
 
-def calculate_checksum(message):
-    """Calculate a 4-digit checksum for the given message."""
-    checksum = sum(message) % 10000
-    return checksum
+def listener_process(data,conn):
+    # data 0 - 9 are reserved for client/client messages
+    if data[0]==1:
+        id, x, y, direction = struct.unpack('!IhhH', data[1:])
+        print(f"Movement message received id{id} x{x} y{y} direction{direction}")
 
-def validate_checksum(message):
-    """Validate the checksum of the received message."""
-    received_message = message[:-2]
-    received_checksum = int.from_bytes(message[-2:], 'big')
-    calculated_checksum = calculate_checksum(received_message)
-    return calculated_checksum == received_checksum
+    elif data[0]==2:
+        print("Shooting message received")
 
-def listener_process(data):
-    """"{sender_ip}|{sender_name}|{message}"""
-    # print(f"Received message from {addr}: {data}")
-    # Validate the checksum
-    if not validate_checksum(data):
-        # print(f"Checksum mismatch from {addr}. Dropping packet.")
-        return False
-    # Decode the message and extract the header
-    content = data[:-2].decode()
-    message = content.split('|', 2)[:3]
-    print(f"Received message from {message[1]}: {message[2]}")
-    return True
+    elif data[0]==3:
+        print("Collision message received")
+
+    elif data[0]==4:
+        message = data[1:]
+        content = message.decode()
+        message = content.split('|', 2)[:3]
+        print(f"Received message from {message[1]}: {message[2]}")
+
+    elif data[0]==5:
+        print("client reveal its position message received")
+
+    # data 10 - 19 are reserved for server/client messages
+    elif data[0]==11:
+        print("init message received from client")
+    elif data[0]==12:
+        x, y, id = struct.unpack('!iii', data[1:])
+        print(f"init message received from server id{id} x{x} y{y}")
+
+    elif data[0]==13:
+        print("opponent init message received")
+    elif data[0]==14:
+        print("opponent movement message received")
+
+    else:
+        print("Unknown message type received")
+        print(data[0])
+        print(data[1:])
+
+
+
+# when client connect to server , send a message #11 (initiation message) to request a location./ ID etc
+# when server got #11 reply #12(prefix) , return back location/ id
+# the server also need to send out #13 to other clients alone with #12 , who is joining / location/ id etc.
+# after the other clients get message #13, they have to reveal their locaiton to the initiating client by sending #5
+
+ 
 

@@ -11,24 +11,24 @@ class Cannonball:
 
     def update(self):
         if self.active:
-            if self.direction == 'up':
+            if self.direction == 0:
                 self.y -= self.speed
-            elif self.direction == 'down':
+            elif self.direction == 4:
                 self.y += self.speed
-            elif self.direction == 'left':
+            elif self.direction == 6:
                 self.x -= self.speed
-            elif self.direction == 'right':
+            elif self.direction == 2:
                 self.x += self.speed
-            elif self.direction == 'up-right':
+            elif self.direction == 1:
                 self.y -= self.speed / 1.414
                 self.x += self.speed / 1.414
-            elif self.direction == 'up-left':
+            elif self.direction == 7:
                 self.y -= self.speed / 1.414
                 self.x -= self.speed / 1.414
-            elif self.direction == 'down-right':
+            elif self.direction == 3:
                 self.y += self.speed / 1.414
                 self.x += self.speed / 1.414
-            elif self.direction == 'down-left':
+            elif self.direction == 5:
                 self.y += self.speed / 1.414
                 self.x -= self.speed / 1.414
 

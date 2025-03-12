@@ -11,7 +11,7 @@ class Tank:
         self.original_image = pygame.transform.scale(self.original_image, (50, 50))
         self.image = self.original_image
         self.image = pygame.transform.scale(self.image, (50, 50))
-        self.direction = 'right'
+        self.direction = 2 #2 is right
         self.rect = self.image.get_rect(topleft=(self.x, self.y))
         self.last_move_time = time.time()
 
@@ -20,49 +20,70 @@ class Tank:
         current_time = time.time()
         if current_time - self.last_move_time < TANK_MOVE_DELAY:
             return
-        
         if keys[pygame.K_UP] and keys[pygame.K_RIGHT]:
             self.y -= self.speed/1.414
             self.x += self.speed/1.414
-            self.direction = 'up-right'
+            self.direction = 1
             self.image = pygame.transform.rotate(self.original_image, 45)
         elif keys[pygame.K_UP] and keys[pygame.K_LEFT]:
             self.y -= self.speed/1.414
             self.x -= self.speed/1.414
-            self.direction = 'up-left'
+            self.direction = 7
             self.image = pygame.transform.rotate(self.original_image, 135)
         elif keys[pygame.K_DOWN] and keys[pygame.K_RIGHT]:
             self.y += self.speed/1.414
             self.x += self.speed/1.414
-            self.direction = 'down-right'
+            self.direction = 3
             self.image = pygame.transform.rotate(self.original_image, -45)
         elif keys[pygame.K_DOWN] and keys[pygame.K_LEFT]:
             self.y += self.speed/1.414
             self.x -= self.speed/1.414
-            self.direction = 'down-left'
+            self.direction = 5
             self.image = pygame.transform.rotate(self.original_image, -135)
         elif keys[pygame.K_UP]:
             self.y -= self.speed
-            self.direction = 'up'
+            self.direction = 0
             self.image = pygame.transform.rotate(self.original_image, 90)
         elif keys[pygame.K_DOWN]:
             self.y += self.speed
-            self.direction = 'down'
+            self.direction = 4
             self.image = pygame.transform.rotate(self.original_image, -90)
         elif keys[pygame.K_LEFT]:
             self.x -= self.speed
-            self.direction = 'left'
+            self.direction = 6
             self.image = pygame.transform.rotate(self.original_image, 180)
         elif keys[pygame.K_RIGHT]:
             self.x += self.speed
-            self.direction = 'right'
+            self.direction = 2
             self.image = pygame.transform.rotate(self.original_image, 0)
-
-
         self.rect = self.image.get_rect(topleft=(self.x, self.y))
         self.last_move_time = current_time
 
+
     def draw(self, screen):
         screen.blit(self.image, (self.x, self.y))
+
+    def get_location(self):
+        return self.x, self.y
+
+    def set_direction(self, direction):
+        self.direction = direction
+        if direction == 0:
+            self.image = pygame.transform.rotate(self.original_image, 90)
+        elif direction == 1:
+            self.image = pygame.transform.rotate(self.original_image, 45)
+        elif direction == 2:
+            self.image = pygame.transform.rotate(self.original_image, 0)
+        elif direction == 3:
+            self.image = pygame.transform.rotate(self.original_image, -45)
+        elif direction == 4:
+            self.image = pygame.transform.rotate(self.original_image, -90)
+        elif direction == 5:
+            self.image = pygame.transform.rotate(self.original_image, -135)
+        elif direction == 6:
+            self.image = pygame.transform.rotate(self.original_image, 180)
+        elif direction == 7:
+            self.image = pygame.transform.rotate(self.original_image, 135)
+        self.rect = self.image.get_rect(topleft=(self.x, self.y))
 
 

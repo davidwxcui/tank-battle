@@ -3,16 +3,23 @@ import threading
 import random
 import os
 import TCP_helper
+import sys
+sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
+import game
+import struct
+
 
 # List to store connected clients
 connected_clients = []
-
+game_instance = None
+game_instance_initialized = threading.Event()
+ID_list = []
+my_id = None
 
 def TCP_server(host='127.0.0.1', port=65432):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
-        print(f"Host and port number: {host}:{port}")
 
         # Start the communicate with client thread
         communication_thread = threading.Thread(target=Server_Message_Sender)
@@ -34,11 +41,37 @@ def Server_Listener(conn, addr):
                 if not data:
                     break
                 else:
-                    TCP_helper.listener_process(data)
+                    return_message = TCP_helper.listener_process(data,conn)
+                    # print(f"Received message from {addr}: {data}")
+                    if data[0] <10:
+                        broadcast_message(data, conn)
+                    if data[0] == 11: # send out component's init message to client
+                        x=random.randint(100,700)
+                        y=random.randint(100,500)
+                        id = TCP_helper.generate_unique_id(ID_list)
+                        message = struct.pack('!Biii', 12, x, y,id)
+                        conn.sendall(message)
+
+                        message = struct.pack('!Biii', 13, x, y, id)
+                        broadcast_message(message, conn)
+                        print(f"new client connected id{id} x{x} y{y}")
+    
+        except ConnectionResetError:
+            print(f"Connection reset by {addr}")       
         finally:
             connected_clients.remove((conn, addr))  # Remove the client from the list when disconnected
             conn.close()
             print(f"connection closed successfully{addr}")
+
+def broadcast_message(message, sender_conn):
+    """Function to broadcast a message to all connected clients except the sender."""
+    for conn, addr in connected_clients:
+        if conn != sender_conn:
+            try:
+                conn.sendall(message)
+            except Exception as e:
+                print(f"Error sending message to {addr}: {e}")
+
 
 def Server_Message_Sender():
     """Function to send message to individual clients."""
@@ -67,38 +100,65 @@ def Server_Message_Sender():
 
         client_conn, client_addr = connected_clients[client_index]
         sender_ip = socket.gethostbyname(socket.gethostname())
-        sender_name = "Server"
+        client_name = "Server"
 
-        header = f"{sender_ip}|{sender_name}|"
+        header = f"{sender_ip}|{client_name}|"
         full_message = header + message
         encoded_message = full_message.encode()
-        checksum = TCP_helper.calculate_checksum(encoded_message)
-        encoded_message_with_checksum = encoded_message + checksum.to_bytes(2, 'big')
-        client_conn.sendall(encoded_message_with_checksum)
+        prefix_byte = b'\x04'
+        encoded_message = prefix_byte + encoded_message
+        client_conn.sendall(encoded_message)
 
 def Client_receive_messages(conn):
     """Function to receive messages from the server."""
+    global game_instance
+    global my_id
     while True:
         data = conn.recv(1024)
         # print(data)
         if data:
-            # Validate the checksum
-            if not TCP_helper.validate_checksum(data):
-                # print(f"Checksum mismatch from {addr}. Dropping packet.")
-                continue
             # Decode the message and extract the header
-            content = data[:-2].decode()
-            message = content.split('|', 2)[:3]
+            TCP_helper.listener_process(data,conn)
+            if data[0]== 12:
+                receive_thread = threading.Thread(target=Client_receive_messages, args=(conn,))
+                receive_thread.start()
+                x, y, my_id = struct.unpack('!iii', data[1:])
+                game_instance = game.Game(x, y, my_id, client_name)
+                game_instance_initialized.set()  # Signal that game_instance is initialized
+                game_instance.run(conn)
 
-            print(f"Message from server: {message[2]}")
-            print("Enter message: ")
+            elif data[0]== 13:
+                x,y,id = struct.unpack('!iii', data[1:])
+                if id == my_id:
+                    continue
+                game_instance_initialized.wait()
+                print(f"new opponent connected id{id} x{x} y{y}")
+                game_instance.add_opponent(x, y, id)
+
+                # reveal my currect locaiton to opponent
+                x,y = game_instance.tank.get_location()
+                message = struct.pack('!Biii', 5, x, y, my_id)
+                conn.sendall(message)
+            
+            elif data[0]== 5:
+                x,y,id = struct.unpack('!iii', data[1:])
+                game_instance_initialized.wait()
+                if not game_instance.existing_opponent(id):
+                    game_instance.add_opponent(x,y,id)
+            elif data[0]== 1:
+                id,x,y,direction = struct.unpack('!IhhH', data[1:])
+                print(f"Movement message received id{id} x{x} y{y} direction{direction}")
+                game_instance_initialized.wait()
+                game_instance.update_opponent(id,x,y,direction)
+  
 
 def TCP_client(host='127.0.0.1', port=65432):
+    global client_name
     input_string = False
     while input_string == False:    
-        sender_name = input("Enter your name: ")  # Prompt for sender name
-        input_string = TCP_helper.validate_input(sender_name)
-    sequence_code = 0
+        client_name = input("Enter your name: ")  # Prompt for sender name
+        input_string = TCP_helper.validate_input(client_name)
+
     sender_ip = socket.gethostbyname(socket.gethostname())
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -108,7 +168,12 @@ def TCP_client(host='127.0.0.1', port=65432):
         # Start the receive messages thread
         receive_thread = threading.Thread(target=Client_receive_messages, args=(s,))
         receive_thread.start()
-    
+
+
+        # Start game by sending init message to server
+        message = struct.pack('!B', 11)
+        s.sendall(message)
+
         while True:
             message = input("Enter message: \n")
             if TCP_helper.validate_input(message) == False:
@@ -117,15 +182,14 @@ def TCP_client(host='127.0.0.1', port=65432):
             if message.lower() == 'exit':
                 print("Closing connection.")
                 break
-
+            
             # Add header to the message
-            full_message = f"{sender_ip}|{sender_name}|{message}"
+            full_message = f"{sender_ip}|{client_name}|{message}"
             encoded_message = full_message.encode()
-            checksum = TCP_helper.calculate_checksum(encoded_message)
-            encoded_message_withchecksum = encoded_message + checksum.to_bytes(2, 'big')
-
+            prefix_byte = b'\x04'
+            encoded_message = prefix_byte + encoded_message
             # Send the message
-            s.sendall(encoded_message_withchecksum)
+            s.sendall(encoded_message)
 
 if __name__ == "__main__":
     role = input("Enter 'server' to start the server or 'client' to start the client: ").strip().lower()
