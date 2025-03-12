@@ -32,6 +32,8 @@ class Cannonball:
                 self.y += self.speed / 1.414
                 self.x -= self.speed / 1.414
 
+            print(f"Cannonball Position: ({self.x}, {self.y})")
+
             # Check if the cannonball is out of bounds
             if self.x < 0 or self.x > 800 or self.y < 0 or self.y > 600:
                 self.active = False
@@ -40,6 +42,7 @@ class Cannonball:
         if self.active:
             pygame.draw.circle(screen, (255, 0, 0), (self.x, self.y), 5)
 
+#this function checks if the cannonball has collided with the tank
     def check_collision(self, tank):
         if self.active:
             tank_rect = pygame.Rect(tank.x, tank.y, tank.width, tank.height)

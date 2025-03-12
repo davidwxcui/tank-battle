@@ -6,9 +6,9 @@ from cannonball import Cannonball
 from settings import *
 import struct
 import socket
+import random
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
 
 class Game:
     def __init__(self,x=100, y=100, id=0,client_name=None):
@@ -39,7 +39,7 @@ class Game:
                 self.running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    self.shoot()
+                    self.shoot(s)
 
         keys = pygame.key.get_pressed()
         self.tank.move(keys)
@@ -51,15 +51,22 @@ class Game:
             token = struct.pack("!BIhhH", msg_type, self.id, x, y, direction)
             s.sendall(token)
             print(f"Movement message sent id{self.id} x{x} y{y} direction{direction}")
+    
 
 
-
-    def shoot(self):
+    def shoot(self,s):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time > CANNONBALL_DELAY * 1000:
             cannonball = Cannonball(self.tank.rect.centerx, self.tank.rect.centery, self.tank.direction, CANNONBALL_SPEED)
             self.cannonballs.append(cannonball)
             self.last_shot_time = current_time
+            msg_type = 2
+            x = int(self.tank.x)
+            y = int(self.tank.y)
+            direction = int(self.tank.direction)
+            token = struct.pack("!BIhhH", msg_type, self.id, x, y, direction)
+            s.sendall(token)
+            print(f"Shooting message sent id{self.id} x{x} y{y} direction{direction}")
 
     def update(self):
         for cannonball in self.cannonballs:
@@ -95,6 +102,23 @@ class Game:
                 self.opponents[index].y = y
                 self.opponents[index].set_direction(direction)  # Update the direction
 
+    def update_opponent_shooting(self, id, x, y, direction):
+        for opponent_id in self.opponents_id:
+            if id == opponent_id:
+                index = self.opponents_id.index(opponent_id)
+                # Update the opponent's position
+                self.opponents[index].x = x
+                self.opponents[index].y = y
+                self.opponents[index].set_direction(direction)
+                
+                # Use the opponent's rect to get the center position
+                offsetx = self.opponents[index].rect.centerx
+                offsety = self.opponents[index].rect.centery
+                
+                # Create and append a cannonball
+                cannonball = Cannonball(offsetx, offsety, direction, CANNONBALL_SPEED)
+                self.cannonballs.append(cannonball)
+                
 if __name__ == "__main__":
     game = Game()
     # game.add_opponent(200, 200)

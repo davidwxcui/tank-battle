@@ -145,12 +145,23 @@ def Client_receive_messages(conn):
                 game_instance_initialized.wait()
                 if not game_instance.existing_opponent(id):
                     game_instance.add_opponent(x,y,id)
+
+            # Opponent movement message        
             elif data[0]== 1:
                 id,x,y,direction = struct.unpack('!IhhH', data[1:])
                 print(f"Movement message received id{id} x{x} y{y} direction{direction}")
                 game_instance_initialized.wait()
                 game_instance.update_opponent(id,x,y,direction)
-  
+
+            # Opponent shooting message
+            elif data[0]== 2:
+                id,x,y,direction = struct.unpack('!IhhH', data[1:])
+                print(f"Shooting message received id{id} x{x} y{y} direction{direction}")
+                game_instance_initialized.wait()    
+                game_instance.update_opponent_shooting(id,x,y,direction)
+
+                
+            
 
 def TCP_client(host='127.0.0.1', port=65432):
     global client_name
