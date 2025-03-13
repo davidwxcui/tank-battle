@@ -59,7 +59,16 @@ def listener_process(data,conn):
         print(data[0])
         print(data[1:])
 
-
+def recv_chunks(conn, length):
+    data = b''
+    while len(data) < length:
+        packet = conn.recv(length - len(data))
+        if not packet:
+            print("No packet")
+            return None #no data, connection was closed
+        data += packet
+    return data
+    
 
 # when client connect to server , send a message #11 (initiation message) to request a location./ ID etc
 # when server got #11 reply #12(prefix) , return back location/ id

@@ -16,7 +16,15 @@ game_instance_initialized = threading.Event()
 ID_list = []
 my_id = None
 
-def TCP_server(host='127.0.0.1', port=65432):
+# Determines the system's local IP by creating a UDP socket
+def getNodeIp():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.connect(("8.8.8.8", 0))
+        return s.getsockname()[0]
+
+def TCP_server( port=65432):
+    host = getNodeIp()
+    
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
@@ -114,11 +122,55 @@ def Client_receive_messages(conn):
     global game_instance
     global my_id
     while True:
-        data = conn.recv(1024)
-        # print(data)
-        if data:
+        data = conn.recv(1)
+        if not data:
+            print("Connection was closed")
+            break
+
+        msg_type = data[0]
+        if msg_type == 12:
+            payload = TCP_helper.recv_chunks(conn, 12)
+            if payload:
+                receive_thread = threading.Thread(target=Client_receive_messages, args=(conn,))
+                receive_thread.start()
+                x, y, my_id = struct.unpack('!iii', payload)
+                game_instance = game.Game(x, y, my_id, client_name)
+                game_instance_initialized.set()  
+                game_instance.run(conn)
+
+        elif msg_type == 13:
+            payload = TCP_helper.recv_chunks(conn, 12)  # '!iii'
+            if payload:
+                x, y, id = struct.unpack('!iii', payload)
+                if id != my_id:
+                    game_instance_initialized.wait()
+                    print(f"New opponent connected: ID {id}, x {x}, y {y}")
+                    game_instance.add_opponent(x, y, id)
+        
+                # Reveal my location to the opponent
+                x, y = game_instance.tank.get_location()
+                message = struct.pack('!Biii', 5, x, y, my_id)
+                conn.sendall(message)
+
+        elif msg_type == 5:
+            payload = TCP_helper.recv_chunks(conn, 12)  # '!iii'
+            if payload:
+                x, y, id = struct.unpack('!iii', payload)
+                game_instance_initialized.wait()
+                if not game_instance.existing_opponent(id):
+                    game_instance.add_opponent(x, y, id)
+
+        elif msg_type == 1:
+            payload = TCP_helper.recv_chunks(conn, 10)
+            if payload:
+                id, x, y, direction = struct.unpack('!IhhH', payload)
+                print(f"Movement message received: ID {id}, x {x}, y {y}, direction {direction}")
+                game_instance_initialized.wait()
+                game_instance.update_opponent(id, x, y, direction)
+                
+"""     if data:
             # Decode the message and extract the header
-            TCP_helper.listener_process(data,conn)
+            TCP_helper.listener_process(data,conn) #This seems redundant
             if data[0]== 12:
                 receive_thread = threading.Thread(target=Client_receive_messages, args=(conn,))
                 receive_thread.start()
@@ -150,16 +202,27 @@ def Client_receive_messages(conn):
                 print(f"Movement message received id{id} x{x} y{y} direction{direction}")
                 game_instance_initialized.wait()
                 game_instance.update_opponent(id,x,y,direction)
+ """
   
 
-def TCP_client(host='127.0.0.1', port=65432):
+def TCP_client(port=65432):
     global client_name
     input_string = False
+    host = ""
+    
     while input_string == False:    
         client_name = input("Enter your name: ")  # Prompt for sender name
         input_string = TCP_helper.validate_input(client_name)
 
-    sender_ip = socket.gethostbyname(socket.gethostname())
+    #checking for a valid server IP address
+    input_string = False
+    
+    while input_string == False and host == "":
+        host = input("Enter the game server IP you want to join: ")
+        input_string = TCP_helper.validate_input(host)
+
+    #sender_ip = socket.gethostbyname(socket.gethostname())
+    #print(f"Sender IP address: {sender_ip}")
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((host, int(port)))
