@@ -24,11 +24,13 @@ def TCP_server(host='127.0.0.1', port=65432):
         # Start the communicate with client thread
         communication_thread = threading.Thread(target=Server_Message_Sender)
         communication_thread.start()
-
+        print("communication thread started")
         while True:
+            print("server listener started")
             conn, addr = s.accept()
             client_thread = threading.Thread(target=Server_Listener, args=(conn, addr))
             client_thread.start()
+
 
 def Server_Listener(conn, addr):
     """Function to listen to message from clients, each listener thread is created for each client."""
@@ -156,11 +158,16 @@ def Client_receive_messages(conn):
             # Opponent shooting message
             elif data[0]== 2:
                 id,x,y,direction = struct.unpack('!IhhH', data[1:])
-                print(f"Shooting message received id{id} x{x} y{y} direction{direction}")
+                print(f"Shooting message received  id{id} x{x} y{y} direction{direction}")
                 game_instance_initialized.wait()    
                 game_instance.update_opponent_shooting(id,x,y,direction)
 
-                
+            # Cannonball hit message
+            elif data[0]== 3:
+                player_id, opponent_id, x, y = struct.unpack('!IhhH', data[1:])
+                game_instance_initialized.wait()
+                #game_instance.handle_cannonball_hit(x,y,id)
+                print(f"Cannonball hit message received player_id{player_id} opponent_id{opponent_id} x{x} y{y}")
             
 
 def TCP_client(host='127.0.0.1', port=65432):
@@ -204,9 +211,9 @@ def TCP_client(host='127.0.0.1', port=65432):
 
 if __name__ == "__main__":
     role = input("Enter 'server' to start the server or 'client' to start the client: ").strip().lower()
-    if role == 'server':
+    if role == 'server' or role == 's':
         TCP_server()
-    elif role == 'client':
+    elif role == 'client' or role == 'c':
         TCP_client()
     else:
         print("Invalid input. Please enter 'server' or 'client'.")
