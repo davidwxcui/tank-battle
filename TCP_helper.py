@@ -6,8 +6,7 @@ sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
 import game
 import threading
 
-# Import GameServer class
-from game_server import GameServer  
+
 
 def generate_unique_id(ID_list):
     """Function to generate a unique ID that is not in the ID_list."""

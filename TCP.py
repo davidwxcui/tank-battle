@@ -8,7 +8,8 @@ sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
 import game
 import struct
 
-
+# Import GameServer class
+from game_server import GameServer  
 # List to store connected clients
 connected_clients = []
 game_instance = None
@@ -16,7 +17,10 @@ game_instance_initialized = threading.Event()
 ID_list = []
 my_id = None
 
+game_server = GameServer()
+
 def TCP_server(host='127.0.0.1', port=65432):
+    
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
@@ -33,6 +37,7 @@ def TCP_server(host='127.0.0.1', port=65432):
 
 
 def Server_Listener(conn, addr):
+ 
     """Function to listen to message from clients, each listener thread is created for each client."""
     print(f"Connected by {addr}")
     connected_clients.append((conn, addr))  # Add the client to the list of connected clients
@@ -47,13 +52,23 @@ def Server_Listener(conn, addr):
                     # print(f"Received message from {addr}: {data}")
                     if data[0] <10:
                         broadcast_message(data, conn)
+                        if data[0] == 1:
+                            player_id, x, y, direction = struct.unpack('!IhhH', data[1:])
+                            game_server.move_player(player_id, x, y, direction)
+                            print(game_server.get_game_state())
+                        if data[0] == 2:
+                            shooter_id, x, y, direction = struct.unpack('!IhhH', data[1:])
+                            game_server.add_bullet(shooter_id, x, y, direction)
+                            print(game_server.get_game_state())
+
                     if data[0] == 11: # send out component's init message to client
                         x=random.randint(100,700)
                         y=random.randint(100,500)
                         id = TCP_helper.generate_unique_id(ID_list)
                         message = struct.pack('!Biii', 12, x, y,id)
                         conn.sendall(message)
-
+                        game_server.add_player(id, x, y, 50, 50, 0)
+                        print(game_server.get_game_state())
                         message = struct.pack('!Biii', 13, x, y, id)
                         broadcast_message(message, conn)
                         print(f"new client connected id{id} x{x} y{y}")
