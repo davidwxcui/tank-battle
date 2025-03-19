@@ -13,6 +13,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 class Game:
     def __init__(self,x=100, y=100, id=0,client_name=None):
         pygame.init()
+        pygame.font.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Tank War Game")
         self.clock = pygame.time.Clock()
@@ -23,6 +24,7 @@ class Game:
         self.opponents = []  # List to store opponent tanks
         self.opponents_id = []
         self.id = id
+
         pygame.display.set_caption(f"Tank War - {id} - {client_name}")  # Change the title to "Tank War"
 
     def run(self,s=None):
@@ -55,7 +57,7 @@ class Game:
     def shoot(self,s):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time > CANNONBALL_DELAY * 1000:
-            cannonball = Cannonball(self.tank.rect.centerx, self.tank.rect.centery, self.tank.direction, self.id,CANNONBALL_SPEED)
+            cannonball = Cannonball(self.tank.rect.centerx, self.tank.rect.centery, self.tank.direction, self.id, CANNONBALL_SPEED)
             self.cannonballs.append(cannonball)
             self.last_shot_time = current_time
             if s:  # Only send if socket exists
@@ -63,7 +65,7 @@ class Game:
                 x = int(self.tank.x)
                 y = int(self.tank.y)
                 direction = int(self.tank.direction)
-                token = struct.pack("!BIhhH", msg_type, self.id, x, y, direction)
+                token = struct.pack("!BIhhH", msg_type, self.id,  x, y, direction)
                 s.sendall(token)
                 print(f"Shooting message sent id{self.id} x{x} y{y} direction{direction}")
 

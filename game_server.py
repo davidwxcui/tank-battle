@@ -4,12 +4,14 @@ import threading
 import time
 import math
 import pygame
+import struct
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, CANNONBALL_SPEED
 
 sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
 
 class GameServer:
-    def __init__(self):
+    def __init__(self, broadcast_func):
+        self.broadcast_func = broadcast_func
         self.players = {}  # {player_id: {"rect": pygame.Rect, "dir": int, "health": int}}
         self.bullets = {}  # {bullet_id: {"rect": pygame.Rect, "owner": player_id}}
         self.lock = threading.Lock()  # Ensures thread safety
@@ -31,7 +33,7 @@ class GameServer:
                 self.players[player_id]["rect"].y = new_y
                 self.players[player_id]["dir"] = direction
 
-    def add_bullet(self, shooter_id, x, y, direction):
+    def add_bullet(self, shooter_id, x, y,  direction):
         """Add a new bullet safely using pygame.Rect for the bullet."""
         with self.lock:
             bullet_rect = pygame.Rect(x, y, 5, 5)  # Set the size of the bullet
@@ -73,6 +75,10 @@ class GameServer:
                     for player_id, player in list(self.players.items()):
                         if player_id != bullet["owner"] and bullet["rect"].colliderect(player["rect"]):
                             print(f"Player {player_id} was hit by Player {bullet['owner']}!")
+                            msg_type=3
+                            player_hitter_id= bullet['owner']
+                            player_hit_id= player_id
+                            self.broadcast_func(struct.pack('!BIhhH', msg_type, player_hitter_id, player_hit_id, bullet["rect"].x, bullet["rect"].y))
                             player["health"] -= 1
                             del self.bullets[bullet_id]
                             if player["health"] <= 0:

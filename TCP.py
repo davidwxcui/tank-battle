@@ -17,7 +17,24 @@ game_instance_initialized = threading.Event()
 ID_list = []
 my_id = None
 
-game_server = GameServer()
+def broadcast_message(message, sender_conn):
+    """Function to broadcast a message to all connected clients except the sender."""
+    for conn, addr in connected_clients:
+        if conn != sender_conn:
+            try:
+                conn.sendall(message)
+            except Exception as e:
+                print(f"Error sending message to {addr}: {e}")
+
+def broadcast_message_to_all(message):
+    """Function to broadcast a message to all connected clients."""
+    for conn, addr in connected_clients:
+        try:
+            conn.sendall(message)
+        except Exception as e:
+            print(f"Error sending message to {addr}: {e}")
+
+game_server = GameServer(broadcast_message_to_all)
 
 def TCP_server(host='127.0.0.1', port=65432):
     
@@ -80,14 +97,7 @@ def Server_Listener(conn, addr):
             conn.close()
             print(f"connection closed successfully{addr}")
 
-def broadcast_message(message, sender_conn):
-    """Function to broadcast a message to all connected clients except the sender."""
-    for conn, addr in connected_clients:
-        if conn != sender_conn:
-            try:
-                conn.sendall(message)
-            except Exception as e:
-                print(f"Error sending message to {addr}: {e}")
+
 
 
 def Server_Message_Sender():
@@ -182,7 +192,7 @@ def Client_receive_messages(conn):
                 player_id, opponent_id, x, y = struct.unpack('!IhhH', data[1:])
                 game_instance_initialized.wait()
                 #game_instance.handle_cannonball_hit(x,y,id)
-                print(f"Cannonball hit message received player_id{player_id} opponent_id{opponent_id} x{x} y{y}")
+                #print(f"Cannonball hit message received player_id{player_id} opponent_id{opponent_id} x{x} y{y}")
             
 
 def TCP_client(host='127.0.0.1', port=65432):

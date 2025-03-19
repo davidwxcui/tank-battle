@@ -2,13 +2,14 @@ import pygame
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, CANNONBALL_SPEED
 
 class Cannonball:
-    def __init__(self, x, y, direction, shooter_id, speed=CANNONBALL_SPEED):
+    def __init__(self, x, y, direction, shooter_id, shot_id, speed=CANNONBALL_SPEED):
         self.x = x
         self.y = y
         self.direction = direction
         self.speed = speed
         self.active = True
         self.shooter_id = shooter_id
+        self.shot_id = shot_id
 
 
     def update(self):
