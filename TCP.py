@@ -8,13 +8,35 @@ sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
 import game
 import struct
 
-
+# Import GameServer class
+from game_server import GameServer  
 # List to store connected clients
 connected_clients = []
 game_instance = None
 game_instance_initialized = threading.Event()
 ID_list = []
 my_id = None
+
+
+def broadcast_message(message, sender_conn):
+    """Function to broadcast a message to all connected clients except the sender."""
+    for conn, addr in connected_clients:
+        if conn != sender_conn:
+            try:
+                conn.sendall(message)
+            except Exception as e:
+                print(f"Error sending message to {addr}: {e}")
+
+def broadcast_message_to_all(message):
+    """Function to broadcast a message to all connected clients."""
+    for conn, addr in connected_clients:
+        try:
+            conn.sendall(message)
+        except Exception as e:
+            print(f"Error sending message to {addr}: {e}")
+
+game_server = GameServer(broadcast_message_to_all)
+
 
 # Determines the system's local IP by creating a UDP socket
 def getNodeIp():
@@ -32,13 +54,16 @@ def TCP_server( port=65432):
         # Start the communicate with client thread
         communication_thread = threading.Thread(target=Server_Message_Sender)
         communication_thread.start()
-
+        print("communication thread started")
         while True:
+            print("server listener started")
             conn, addr = s.accept()
             client_thread = threading.Thread(target=Server_Listener, args=(conn, addr))
             client_thread.start()
 
+
 def Server_Listener(conn, addr):
+ 
     """Function to listen to message from clients, each listener thread is created for each client."""
     print(f"Connected by {addr}")
     connected_clients.append((conn, addr))  # Add the client to the list of connected clients
@@ -53,13 +78,23 @@ def Server_Listener(conn, addr):
                     # print(f"Received message from {addr}: {data}")
                     if data[0] <10:
                         broadcast_message(data, conn)
+                        if data[0] == 1:
+                            player_id, x, y, direction = struct.unpack('!IhhH', data[1:])
+                            game_server.move_player(player_id, x, y, direction)
+                            print(game_server.get_game_state())
+                        if data[0] == 2:
+                            shooter_id, x, y, direction = struct.unpack('!IhhH', data[1:])
+                            game_server.add_bullet(shooter_id, x, y, direction)
+                            print(game_server.get_game_state())
+
                     if data[0] == 11: # send out component's init message to client
                         x=random.randint(100,700)
                         y=random.randint(100,500)
                         id = TCP_helper.generate_unique_id(ID_list)
                         message = struct.pack('!Biii', 12, x, y,id)
                         conn.sendall(message)
-
+                        game_server.add_player(id, x, y, 50, 50, 0)
+                        print(game_server.get_game_state())
                         message = struct.pack('!Biii', 13, x, y, id)
                         broadcast_message(message, conn)
                         print(f"new client connected id{id} x{x} y{y}")
@@ -71,14 +106,7 @@ def Server_Listener(conn, addr):
             conn.close()
             print(f"connection closed successfully{addr}")
 
-def broadcast_message(message, sender_conn):
-    """Function to broadcast a message to all connected clients except the sender."""
-    for conn, addr in connected_clients:
-        if conn != sender_conn:
-            try:
-                conn.sendall(message)
-            except Exception as e:
-                print(f"Error sending message to {addr}: {e}")
+
 
 
 def Server_Message_Sender():
@@ -167,7 +195,7 @@ def Client_receive_messages(conn):
                 print(f"Movement message received: ID {id}, x {x}, y {y}, direction {direction}")
                 game_instance_initialized.wait()
                 game_instance.update_opponent(id, x, y, direction)
-                
+
 """     if data:
             # Decode the message and extract the header
             TCP_helper.listener_process(data,conn) #This seems redundant
@@ -197,13 +225,27 @@ def Client_receive_messages(conn):
                 game_instance_initialized.wait()
                 if not game_instance.existing_opponent(id):
                     game_instance.add_opponent(x,y,id)
+
+            # Opponent movement message        
             elif data[0]== 1:
                 id,x,y,direction = struct.unpack('!IhhH', data[1:])
                 print(f"Movement message received id{id} x{x} y{y} direction{direction}")
                 game_instance_initialized.wait()
                 game_instance.update_opponent(id,x,y,direction)
- """
-  
+                               # Opponent shooting message
+            elif data[0]== 2:
+                id,x,y,direction = struct.unpack('!IhhH', data[1:])
+                print(f"Shooting message received  id{id} x{x} y{y} direction{direction}")
+                game_instance_initialized.wait()    
+                game_instance.update_opponent_shooting(id,x,y,direction)
+
+            # Cannonball hit message
+            elif data[0]== 3:
+                player_id, opponent_id, x, y = struct.unpack('!IhhH', data[1:])
+                game_instance_initialized.wait()
+                #game_instance.handle_cannonball_hit(x,y,id)
+                #print(f"Cannonball hit message received player_id{player_id} opponent_id{opponent_id} x{x} y{y}")
+"""
 
 def TCP_client(port=65432):
     global client_name
@@ -256,9 +298,9 @@ def TCP_client(port=65432):
 
 if __name__ == "__main__":
     role = input("Enter 'server' to start the server or 'client' to start the client: ").strip().lower()
-    if role == 'server':
+    if role == 'server' or role == 's':
         TCP_server()
-    elif role == 'client':
+    elif role == 'client' or role == 'c':
         TCP_client()
     else:
         print("Invalid input. Please enter 'server' or 'client'.")

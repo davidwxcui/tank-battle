@@ -6,6 +6,8 @@ sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
 import game
 import threading
 
+
+
 def generate_unique_id(ID_list):
     """Function to generate a unique ID that is not in the ID_list."""
     while True:
@@ -28,10 +30,12 @@ def listener_process(data,conn):
         print(f"Movement message received id{id} x{x} y{y} direction{direction}")
 
     elif data[0]==2:
-        print("Shooting message received")
+        id, x, y, direction = struct.unpack('!IhhH', data[1:])
+        print(f"Shooting message received id{id} x{x} y{y} direction{direction}")
 
     elif data[0]==3:
-        print("Collision message received")
+        player_id, opponent_id, x, y = struct.unpack('!IhhH', data[1:])
+        print(f"Cannonball hit message received player_id{player_id} opponent_id{opponent_id} x{x} y{y}")
 
     elif data[0]==4:
         message = data[1:]

@@ -2,12 +2,15 @@ import pygame
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, CANNONBALL_SPEED
 
 class Cannonball:
-    def __init__(self, x, y, direction, speed=CANNONBALL_SPEED):
+    def __init__(self, x, y, direction, shooter_id, shot_id, speed=CANNONBALL_SPEED):
         self.x = x
         self.y = y
         self.direction = direction
         self.speed = speed
         self.active = True
+        self.shooter_id = shooter_id
+        self.shot_id = shot_id
+
 
     def update(self):
         if self.active:
@@ -32,6 +35,8 @@ class Cannonball:
                 self.y += self.speed / 1.414
                 self.x -= self.speed / 1.414
 
+            #print(f"Cannonball Position: ({self.x}, {self.y})")
+
             # Check if the cannonball is out of bounds
             if self.x < 0 or self.x > 800 or self.y < 0 or self.y > 600:
                 self.active = False
@@ -40,14 +45,21 @@ class Cannonball:
         if self.active:
             pygame.draw.circle(screen, (255, 0, 0), (self.x, self.y), 5)
 
-    def check_collision(self, tank):
-        if self.active:
-            tank_rect = pygame.Rect(tank.x, tank.y, tank.width, tank.height)
-            cannonball_rect = pygame.Rect(self.x, self.y, 10, 10)
-            if tank_rect.colliderect(cannonball_rect):
+    def check_collision_cannonball_tank(self, tank, opponent_id, shooter_id):
+        # Don't check collision if the shooter is hitting their own cannonball
+        if self.active == True:
+            if shooter_id == self.shooter_id:
+                return False
+            # Create rectangles for collision detection
+            cannonball_rect = pygame.Rect(self.x - 5, self.y - 5, 10, 10)  # Center the 10x10 rect on cannonball position
+            # Check if the rectangles overlap
+            if cannonball_rect.colliderect(tank.rect):
                 self.active = False
+                tank.take_damage()  # Reduce tank health when hit
                 return True
-        return False
+                
+            return False
+
     
     def is_out_of_bounds(self):
         return self.x < 0 or self.x > SCREEN_WIDTH or self.y < 0 or self.y > SCREEN_HEIGHT

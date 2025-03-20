@@ -14,9 +14,14 @@ class Tank:
         self.direction = 2 #2 is right
         self.rect = self.image.get_rect(topleft=(self.x, self.y))
         self.last_move_time = time.time()
+        self.health = 1
+        self.alive = True
 
 
     def move(self, keys):
+        self.prev_x = self.x
+        self.prev_y = self.y
+
         current_time = time.time()
         if current_time - self.last_move_time < TANK_MOVE_DELAY:
             return
@@ -85,5 +90,25 @@ class Tank:
         elif direction == 7:
             self.image = pygame.transform.rotate(self.original_image, 135)
         self.rect = self.image.get_rect(topleft=(self.x, self.y))
+
+    def detect_collision_tank(self, other_tank):
+        return self.rect.colliderect(other_tank.rect)
+
+    def get_health(self):
+        return self.health
+    
+    def death(self):
+        if self.health <= 0:
+            self.alive = False
+            return True
+        return False
+    
+    def is_alive(self):
+        return self.alive
+
+    def take_damage(self):
+        self.health -= 1
+
+    
 
 
