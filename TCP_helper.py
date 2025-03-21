@@ -29,9 +29,9 @@ def listener_process(data,conn):
         id, x, y, direction = struct.unpack('!IhhH', data[1:])
         print(f"Movement message received id{id} x{x} y{y} direction{direction}")
 
-    elif data[0]==2:
-        id, x, y, direction = struct.unpack('!IhhH', data[1:])
-        print(f"Shooting message received id{id} x{x} y{y} direction{direction}")
+    #elif data[0]==2:
+        #id, x, y, direction = struct.unpack('!IhhH', data[1:])
+        #print(f"Shooting message received id{id} x{x} y{y} direction{direction}")
 
     elif data[0]==3:
         player_id, opponent_id, x, y = struct.unpack('!IhhH', data[1:])

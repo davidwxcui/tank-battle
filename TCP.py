@@ -35,7 +35,7 @@ def broadcast_message_to_all(message):
         except Exception as e:
             print(f"Error sending message to {addr}: {e}")
 
-game_server = GameServer(broadcast_message_to_all)
+game_server = GameServer(broadcast_message_to_all, broadcast_message)
 
 
 # Determines the system's local IP by creating a UDP socket
@@ -77,11 +77,12 @@ def Server_Listener(conn, addr):
                     return_message = TCP_helper.listener_process(data,conn)
                     # print(f"Received message from {addr}: {data}")
                     if data[0] <10:
-                        broadcast_message(data, conn)
-                        if data[0] == 1:
-                            player_id, x, y, direction = struct.unpack('!IhhH', data[1:])
-                            game_server.move_player(player_id, x, y, direction)
-                            print(game_server.get_game_state())
+                        if data[0] != 2:
+                            broadcast_message(data, conn)
+                            if data[0] == 1:
+                                player_id, x, y, direction = struct.unpack('!IhhH', data[1:])
+                                game_server.move_player(player_id, x, y, direction)
+                                print(game_server.get_game_state())
                         if data[0] == 2:
                             shooter_id, x, y, direction = struct.unpack('!IhhH', data[1:])
                             game_server.add_bullet(shooter_id, x, y, direction)
@@ -195,7 +196,24 @@ def Client_receive_messages(conn):
                 print(f"Movement message received: ID {id}, x {x}, y {y}, direction {direction}")
                 game_instance_initialized.wait()
                 game_instance.update_opponent(id, x, y, direction)
-
+"""
+        elif msg_type == 2:
+            payload = TCP_helper.recv_chunks(conn, 20)
+            if payload:
+                shooter_id, bullet_id, x, y, direction = struct.unpack('!iiiii', payload)
+                print(f"Shooting message received: ID {shooter_id}, bullet_id {bullet_id}, x {x}, y {y}, direction {direction}")
+                game_instance_initialized.wait()
+                game_instance.update_all_shooting(shooter_id, bullet_id, x, y, direction)
+        
+        
+        elif msg_type == 3:
+            payload = TCP_helper.recv_chunks(conn, 10)
+            if payload:
+                player_id, opponent_id, x, y = struct.unpack('!IhhH', payload)
+                print(f"Cannonball hit message received: Player ID {player_id}, Opponent ID {opponent_id}, x {x}, y {y}")
+                game_instance_initialized.wait()
+                #game_instance.handle_cannonball_hit(x, y, opponent_id)
+"""
 """     if data:
             # Decode the message and extract the header
             TCP_helper.listener_process(data,conn) #This seems redundant
