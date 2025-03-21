@@ -10,8 +10,10 @@ from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, CANNONBALL_SPEED
 sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
 
 class GameServer:
-    def __init__(self, broadcast_func):
-        self.broadcast_func = broadcast_func
+    def __init__(self, broadcast_func_to_all, broadcast_func_to_client):
+        self.broadcast_func_to_all = broadcast_func_to_all
+        self.broadcast_func_except_sender = broadcast_func_to_client
+
         self.players = {}  # {player_id: {"rect": pygame.Rect, "dir": int, "health": int}}
         self.bullets = {}  # {bullet_id: {"rect": pygame.Rect, "owner": player_id}}
         self.lock = threading.Lock()  # Ensures thread safety
@@ -33,14 +35,17 @@ class GameServer:
                 self.players[player_id]["rect"].y = new_y
                 self.players[player_id]["dir"] = direction
 
+    #add a bullet to the game state and send it to all clients including the shooter 
     def add_bullet(self, shooter_id, x, y,  direction):
         """Add a new bullet safely using pygame.Rect for the bullet."""
         with self.lock:
             bullet_rect = pygame.Rect(x, y, 5, 5)  # Set the size of the bullet
-            bullet_id = self.bullet_shot + 1
+            bullet_id = self.bullet_shot
             self.bullet_shot += 1
             self.bullets[bullet_id] = {"rect": bullet_rect, "owner": shooter_id, "bullet_direction": direction}
-
+            msg_type=2
+            packed_data = struct.pack('!Iiiiii', msg_type, shooter_id, bullet_id, x, y, direction)
+            self.broadcast_func_to_all(packed_data)
     def update_game_state(self):
         """Main game loop to update positions and check for collisions."""
         while True:
@@ -78,7 +83,7 @@ class GameServer:
                             msg_type=3
                             player_hitter_id= bullet['owner']
                             player_hit_id= player_id
-                            self.broadcast_func(struct.pack('!BIhhH', msg_type, player_hitter_id, player_hit_id, bullet["rect"].x, bullet["rect"].y))
+                            self.broadcast_func_to_all(struct.pack('!BIhhH', msg_type, player_hitter_id, player_hit_id, bullet["rect"].x, bullet["rect"].y))
                             player["health"] -= 1
                             del self.bullets[bullet_id]
                             if player["health"] <= 0:

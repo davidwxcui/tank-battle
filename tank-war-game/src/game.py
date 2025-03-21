@@ -23,7 +23,8 @@ class Game:
         self.last_shot_time = 0
         self.opponents = []  # List to store opponent tanks
         self.opponents_id = []
-        self.id = id
+        self.id = id # id of the player
+        self.shots = {} # dictionary to store the shots
 
         pygame.display.set_caption(f"Tank War - {id} - {client_name}")  # Change the title to "Tank War"
 
@@ -57,8 +58,8 @@ class Game:
     def shoot(self,s):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time > CANNONBALL_DELAY * 1000:
-            cannonball = Cannonball(self.tank.rect.centerx, self.tank.rect.centery, self.tank.direction, self.id, CANNONBALL_SPEED)
-            self.cannonballs.append(cannonball)
+            #cannonball = Cannonball(self.tank.rect.centerx, self.tank.rect.centery, self.tank.direction, self.id, CANNONBALL_SPEED)
+            #self.cannonballs.append(cannonball)
             self.last_shot_time = current_time
             if s:  # Only send if socket exists
                 msg_type = 2
@@ -106,7 +107,15 @@ class Game:
                 self.opponents[index].y = y
                 self.opponents[index].set_direction(direction)  # Update the direction
 
-    def update_opponent_shooting(self, id, x, y, direction):
+    def update_all_shooting(self, id, shot_id, x, y, direction):
+        if id == self.id:
+            cannonball = Cannonball(self.tank.rect.centerx, self.tank.rect.centery, self.tank.direction, self.id, shot_id,CANNONBALL_SPEED)
+            self.cannonballs.append(cannonball)
+        else:
+            self.update_opponent_shooting(id, shot_id, x, y, direction)
+    
+    
+    def update_opponent_shooting(self, id, shot_id, x, y, direction):
         for opponent_id in self.opponents_id:
             if id == opponent_id:
                 index = self.opponents_id.index(opponent_id)
@@ -121,9 +130,11 @@ class Game:
                 print(f"Offset: {offsetx}, {offsety}")
 
                 # Create and append the cannonball with the adjusted position
-                cannonball = Cannonball(offsetx, offsety, direction, id, CANNONBALL_SPEED)
+                cannonball = Cannonball(offsetx, offsety, direction, id, shot_id,CANNONBALL_SPEED)
                 self.cannonballs.append(cannonball)
                 break
+
+
                 
     def check_tank_collision(self):
         for opponent in self.opponents:
