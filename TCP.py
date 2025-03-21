@@ -77,6 +77,8 @@ def Server_Listener(conn, addr):
                     return_message = TCP_helper.listener_process(data,conn)
                     # print(f"Received message from {addr}: {data}")
                     if data[0] <10:
+                        #Here the add bullet have a broadcast message inside the function so we don't need to broadcast it again
+                        #broadcast message that is not a 2 (shooting message)
                         if data[0] != 2:
                             broadcast_message(data, conn)
                             if data[0] == 1:
@@ -196,7 +198,7 @@ def Client_receive_messages(conn):
                 print(f"Movement message received: ID {id}, x {x}, y {y}, direction {direction}")
                 game_instance_initialized.wait()
                 game_instance.update_opponent(id, x, y, direction)
-"""
+
         elif msg_type == 2:
             payload = TCP_helper.recv_chunks(conn, 20)
             if payload:
@@ -204,7 +206,7 @@ def Client_receive_messages(conn):
                 print(f"Shooting message received: ID {shooter_id}, bullet_id {bullet_id}, x {x}, y {y}, direction {direction}")
                 game_instance_initialized.wait()
                 game_instance.update_all_shooting(shooter_id, bullet_id, x, y, direction)
-        
+"""      
         
         elif msg_type == 3:
             payload = TCP_helper.recv_chunks(conn, 10)
