@@ -5,6 +5,7 @@ import time
 import math
 import pygame
 import struct
+from pygame.locals import *
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, CANNONBALL_SPEED
 
 sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
@@ -44,8 +45,9 @@ class GameServer:
             self.bullet_shot += 1
             self.bullets[bullet_id] = {"rect": bullet_rect, "owner": shooter_id, "bullet_direction": direction}
             msg_type=2
-            packed_data = struct.pack('!Iiiiii', msg_type, shooter_id, bullet_id, x, y, direction)
+            packed_data = struct.pack('!Hhhhhh', msg_type, shooter_id, bullet_id, x, y, direction)
             self.broadcast_func_to_all(packed_data)
+            
     def update_game_state(self):
         """Main game loop to update positions and check for collisions."""
         while True:
@@ -78,18 +80,25 @@ class GameServer:
 
                     # Check if the bullet hits any player
                     for player_id, player in list(self.players.items()):
-                        if player_id != bullet["owner"] and bullet["rect"].colliderect(player["rect"]):
-                            print(f"Player {player_id} was hit by Player {bullet['owner']}!")
-                            msg_type=3
-                            player_hitter_id= bullet['owner']
-                            player_hit_id= player_id
-                            self.broadcast_func_to_all(struct.pack('!BIhhH', msg_type, player_hitter_id, player_hit_id, bullet["rect"].x, bullet["rect"].y))
-                            player["health"] -= 1
-                            del self.bullets[bullet_id]
-                            if player["health"] <= 0:
-                                print(f"Player {player_id} has been eliminated!")
-                                del self.players[player_id]
-                            break  # Stop checking once bullet hits someone
+                        if player_id != bullet["owner"]:
+                            #print(f"Player Rect: {player['rect']}, Bullet Rect: {bullet['rect']}")
+                            collide = pygame.Rect.colliderect(bullet["rect"], player["rect"])
+                            #print(f"Collision detected: {collide}")
+                            
+                            if collide:
+                                print(f"Player {player_id} was hit by Player {bullet['owner']}! with bullet id {bullet_id}")
+                                msg_type=3
+                                player_hitter_id= bullet['owner']
+                                player_hit_id= player_id
+                                self.broadcast_func_to_all(struct.pack('!Hhhh', msg_type, player_hitter_id, player_hit_id, bullet_id))
+                                player["health"] -= 1
+                                del self.bullets[bullet_id]
+                                if player["health"] <= 0:
+                                    print(f"Player {player_id} has been eliminated!")
+                                    del self.players[player_id]
+                                    msg_type=6
+                                    self.broadcast_func_to_all(struct.pack('!Hh', msg_type, player_hit_id))
+                                break  # Stop checking once bullet hits someone
 
                     # Remove bullets if they go off-screen
                     if bullet_id in self.bullets:  # Ensure the bullet wasn't removed in collision check

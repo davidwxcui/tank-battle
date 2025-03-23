@@ -3,7 +3,7 @@ import time
 from settings import TANK_MOVE_DELAY
 
 class Tank:
-    def __init__(self, x=100, y=100, speed=10, image="./tank image/Screenshot_5.png"):
+    def __init__(self, x=100, y=100, speed=10, image="./tank image/Screenshot_5.png", tank_id=0):
         self.x = x
         self.y = y
         self.speed = speed
@@ -16,6 +16,7 @@ class Tank:
         self.last_move_time = time.time()
         self.health = 1
         self.alive = True
+        self.tank_id = tank_id
 
 
     def move(self, keys):

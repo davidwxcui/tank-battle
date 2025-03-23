@@ -45,21 +45,7 @@ class Cannonball:
         if self.active:
             pygame.draw.circle(screen, (255, 0, 0), (self.x, self.y), 5)
 
-    def check_collision_cannonball_tank(self, tank, opponent_id, shooter_id):
-        # Don't check collision if the shooter is hitting their own cannonball
-        if self.active == True:
-            if shooter_id == self.shooter_id:
-                return False
-            # Create rectangles for collision detection
-            cannonball_rect = pygame.Rect(self.x - 5, self.y - 5, 10, 10)  # Center the 10x10 rect on cannonball position
-            # Check if the rectangles overlap
-            if cannonball_rect.colliderect(tank.rect):
-                self.active = False
-                tank.take_damage()  # Reduce tank health when hit
-                return True
-                
-            return False
 
-    
     def is_out_of_bounds(self):
         return self.x < 0 or self.x > SCREEN_WIDTH or self.y < 0 or self.y > SCREEN_HEIGHT
+
