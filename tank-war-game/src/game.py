@@ -7,8 +7,17 @@ from settings import *
 import struct
 import socket
 import random
-
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+# Define consta
+""" Using this for debugging purposes
+WIDTH, HEIGHT = 800, 600  # Screen size
+CELL_SIZE = 50  # Size of each grid cell
+GRID_COLOR = (200, 200, 200)  # Light gray grid lines
+TEXT_COLOR = (255, 0, 0)  # Red text for coordinates
+
+"""
+
 
 class Game:
     def __init__(self,x=100, y=100, id=0,client_name=None):
@@ -27,6 +36,19 @@ class Game:
         self.shots = {} # dictionary to store the shots
 
         pygame.display.set_caption(f"Tank War - {id} - {client_name}")  # Change the title to "Tank War"
+        print(f"Game initialized with id: {id}")
+    """#Draws a grid on the screen with coordinates for debugging purposes
+    def draw_grid(self):
+            font = pygame.font.Font(None, 24)  # Define font inside the function
+            for x in range(0, WIDTH, CELL_SIZE):
+                pygame.draw.line(self.screen, GRID_COLOR, (x, 0), (x, HEIGHT))
+                for y in range(0, HEIGHT, CELL_SIZE):
+                    pygame.draw.line(self.screen, GRID_COLOR, (0, y), (WIDTH, y))
+                    coord_text = font.render(f"({x},{y})", True, TEXT_COLOR)
+                    self.screen.blit(coord_text, (x + 2, y + 2))  # Offset text for visibility
+    """
+
+
 
     def run(self,s=None):
         while self.running:
@@ -63,8 +85,8 @@ class Game:
             self.last_shot_time = current_time
             if s:  # Only send if socket exists
                 msg_type = 2
-                x = int(self.tank.x)
-                y = int(self.tank.y)
+                x = int(self.tank.rect.centerx)
+                y = int(self.tank.rect.centery)
                 direction = int(self.tank.direction)
                 token = struct.pack("!BIhhH", msg_type, self.id,  x, y, direction)
                 s.sendall(token)
@@ -86,12 +108,14 @@ class Game:
             opponent.draw(self.screen)
         for cannonball in self.cannonballs:
             cannonball.draw(self.screen)
+        #self.draw_grid() use this to draw a grid on the screen for debugging purposes
         pygame.display.flip()
 
     def add_opponent(self, x, y, id):
-        opponent = Tank(x, y)
+        opponent = Tank(x, y,id)
         self.opponents.append(opponent)
         self.opponents_id.append(id)
+
 
     def existing_opponent(self, id):
         for opponent_id in self.opponents_id:
@@ -133,7 +157,6 @@ class Game:
                 cannonball = Cannonball(offsetx, offsety, direction, id, shot_id,CANNONBALL_SPEED)
                 self.cannonballs.append(cannonball)
                 break
-
 
                 
     def check_tank_collision(self):
@@ -177,6 +200,33 @@ class Game:
             s.sendall(token)
             print(f"Cannonball hit message sent player_id{player_id} opponent_id{send_opponent_id} x{x} y{y}")
  
+
+    def handle_cannonball_hit(self, player_hitter_id, player_hit_id, bullet_id):
+        for cannonball in self.cannonballs:
+            if cannonball.shot_id == bullet_id:
+                self.cannonballs.remove(cannonball)
+                break
+
+    def handle_player_eliminated(self, player_id):
+        print(f"Client side Player {player_id} has been eliminated!")
+        if player_id == self.id:
+            self.running = False
+            print(f"Player {player_id} has been eliminated!")
+        else:
+            # Remove the opponent from the list if they are eliminated
+            if player_id in self.opponents_id:
+                print(f"Player {player_id} is in the opponents id list")
+                index = self.opponents_id.index(player_id)
+                # Check that the opponent's tank ID matches
+                for opponent in self.opponents:
+                    print(opponent)
+                #if self.opponents[index] == player_id:
+                print(f"Player {player_id} is in the opponents list")
+                del self.opponents[index]  # Delete opponent tank from the list
+                del self.opponents_id[index]  # Delete opponent's ID from the list
+                print(f"Player {player_id} has been eliminated!")
+
+
 if __name__ == "__main__":
     game = Game()
     # game.add_opponent(200, 200)

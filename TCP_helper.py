@@ -29,9 +29,9 @@ def listener_process(data,conn):
         id, x, y, direction = struct.unpack('!IhhH', data[1:])
         print(f"Movement message received id{id} x{x} y{y} direction{direction}")
 
-    #elif data[0]==2:
-        #id, x, y, direction = struct.unpack('!IhhH', data[1:])
-        #print(f"Shooting message received id{id} x{x} y{y} direction{direction}")
+    elif data[0]==2:
+        shooter_id, x, y, direction = struct.unpack('!IhhH', data[1:])
+        print(f"Shooting message received id{shooter_id} x{x} y{y} direction{direction}")
 
     elif data[0]==3:
         player_id, opponent_id, x, y = struct.unpack('!IhhH', data[1:])
@@ -45,6 +45,9 @@ def listener_process(data,conn):
 
     elif data[0]==5:
         print("client reveal its position message received")
+
+    elif data[0]==6:
+        print("player eliminated message received")
 
     # data 10 - 19 are reserved for server/client messages
     elif data[0]==11:
