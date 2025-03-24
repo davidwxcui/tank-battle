@@ -49,6 +49,15 @@ def listener_process(data,conn):
     elif data[0]==6:
         print("player eliminated message received")
 
+    elif data[0]==7:
+        print("wall data message received")
+
+    elif data[0]==8:
+        print("wall hit destroy message")
+
+    elif data[0]==9:
+        print("wall destroy message received")
+
     # data 10 - 19 are reserved for server/client messages
     elif data[0]==11:
         print("init message received from client")

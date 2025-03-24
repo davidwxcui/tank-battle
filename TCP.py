@@ -98,6 +98,7 @@ def Server_Listener(conn, addr):
                         message = struct.pack('!Biii', 12, x, y,id)
                         conn.sendall(message)
                         game_server.add_player(id, x, y, 50, 50, 0)
+                        game_server.send_wall_data()
                         print(game_server.get_game_state())
                         message = struct.pack('!Biii', 13, x, y, id)
                         broadcast_message(message, conn)
@@ -225,6 +226,30 @@ def Client_receive_messages(conn):
                 print(f"Player eliminated message received: player {player_id}")
                 game_instance_initialized.wait()
                 game_instance.handle_player_eliminated(player_id)
+
+        elif msg_type == 7:
+            payload = TCP_helper.recv_chunks(conn, 10)
+            if payload:
+                x, y, width, height, wall_id = struct.unpack('!hhhhh', payload)
+                print(f"Wall data message received: x {x}, y {y}, width {width}, height {height}, wall_id {wall_id}")
+                game_instance_initialized.wait()
+                game_instance.handle_wall_data(x, y, width, height, wall_id)
+
+        elif msg_type == 8:
+            payload = TCP_helper.recv_chunks(conn, 2)
+            if payload:
+                bullet_id, = struct.unpack('!h', payload)
+                print(f"Wall hit destroy message received: bullet_id {bullet_id}")
+                game_instance_initialized.wait()
+                game_instance.handle_wall_hit(bullet_id)
+        
+        elif msg_type == 9:
+            payload = TCP_helper.recv_chunks(conn, 4)
+            if payload:
+                wall_id, bullet_id = struct.unpack('!hh', payload)
+                print(f"Wall destroy message received: wall_id {wall_id}, bullet_id {bullet_id}")
+                game_instance_initialized.wait()
+                game_instance.handle_wall_destroy(wall_id, bullet_id)
 
 """     if data:
             # Decode the message and extract the header

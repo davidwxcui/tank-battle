@@ -4,26 +4,27 @@ import pygame
 from tank import Tank
 from cannonball import Cannonball
 from settings import *
+from wall import Wall
 import struct
 import socket
 import random
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # Define consta
-""" Using this for debugging purposes
-WIDTH, HEIGHT = 800, 600  # Screen size
+#Using this for debugging purposes
+WIDTH, HEIGHT = 650, 650 # Screen size
 CELL_SIZE = 50  # Size of each grid cell
 GRID_COLOR = (200, 200, 200)  # Light gray grid lines
 TEXT_COLOR = (255, 0, 0)  # Red text for coordinates
 
-"""
+
 
 
 class Game:
-    def __init__(self,x=100, y=100, id=0,client_name=None):
+    def __init__(self,x=0, y=0, id=0,client_name=None):
         pygame.init()
         pygame.font.init()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("Tank War Game")
         self.clock = pygame.time.Clock()
         self.tank = Tank(x,y)
@@ -34,10 +35,12 @@ class Game:
         self.opponents_id = []
         self.id = id # id of the player
         self.shots = {} # dictionary to store the shots
+        self.Walls = []
+        self.received_all_walls = False
 
         pygame.display.set_caption(f"Tank War - {id} - {client_name}")  # Change the title to "Tank War"
         print(f"Game initialized with id: {id}")
-    """#Draws a grid on the screen with coordinates for debugging purposes
+    #Draws a grid on the screen with coordinates for debugging purposes
     def draw_grid(self):
             font = pygame.font.Font(None, 24)  # Define font inside the function
             for x in range(0, WIDTH, CELL_SIZE):
@@ -46,8 +49,6 @@ class Game:
                     pygame.draw.line(self.screen, GRID_COLOR, (0, y), (WIDTH, y))
                     coord_text = font.render(f"({x},{y})", True, TEXT_COLOR)
                     self.screen.blit(coord_text, (x + 2, y + 2))  # Offset text for visibility
-    """
-
 
 
     def run(self,s=None):
@@ -67,7 +68,7 @@ class Game:
                     self.shoot(s)
 
         keys = pygame.key.get_pressed()
-        self.tank.move(keys)
+        self.tank.move(keys, self.Walls)
         if s and (keys[pygame.K_UP] or keys[pygame.K_DOWN] or keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
             msg_type = 1  # movement message type
             x = int(self.tank.x)
@@ -108,7 +109,11 @@ class Game:
             opponent.draw(self.screen)
         for cannonball in self.cannonballs:
             cannonball.draw(self.screen)
-        #self.draw_grid() use this to draw a grid on the screen for debugging purposes
+        if self.received_all_walls:
+            for wall in self.Walls:
+                wall.draw(self.screen)
+        #use this to draw a grid on the screen for debugging purposes
+        #self.draw_grid() 
         pygame.display.flip()
 
     def add_opponent(self, x, y, id):
@@ -226,7 +231,24 @@ class Game:
                 del self.opponents_id[index]  # Delete opponent's ID from the list
                 print(f"Player {player_id} has been eliminated!")
 
+    def handle_wall_data(self, x, y, width, height, wall_id):
+        self.Walls.append(Wall(x, y, width, height, wall_id))
+        if len(self.Walls) == len(wall_data):
+            self.received_all_walls = True
 
+    def handle_wall_hit(self, bullet_id):
+        for cannonball in self.cannonballs:
+            if cannonball.shot_id == bullet_id:
+                self.cannonballs.remove(cannonball)
+                break
+
+    def handle_wall_destroy(self,  wall_id,bullet_id):
+        self.handle_wall_hit(bullet_id)
+        for wall in self.Walls:
+            if wall.wall_id == wall_id:
+                self.Walls.remove(wall)
+                break
+        
 if __name__ == "__main__":
     game = Game()
     # game.add_opponent(200, 200)

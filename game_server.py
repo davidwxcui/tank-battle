@@ -6,7 +6,7 @@ import math
 import pygame
 import struct
 from pygame.locals import *
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, CANNONBALL_SPEED
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, CANNONBALL_SPEED, wall_data
 
 sys.path.insert(0, os.path.abspath('./tank-war-game/src'))
 
@@ -21,6 +21,8 @@ class GameServer:
         self.game_thread = threading.Thread(target=self.update_game_state, daemon=True)
         self.game_thread.start()  # Start the game loop in a background thread
         self.bullet_shot = 0
+        self.wall = {i: {"rect": pygame.Rect(x, y, width, height), "health": 3} 
+             for i, (x, y, width, height) in enumerate(wall_data)} # {wall_id: {"rect": pygame.Rect, "health": int}}
 
     def add_player(self, player_id, x, y, width, height, direction):
         """Add a new player safely using pygame.Rect for player position."""
@@ -99,10 +101,31 @@ class GameServer:
                                     msg_type=6
                                     self.broadcast_func_to_all(struct.pack('!Hh', msg_type, player_hit_id))
                                 break  # Stop checking once bullet hits someone
+                    
+                    # Check if the bullet hits any wall
+                    for wall_id, wall in list(self.wall.items()):
+                        if pygame.Rect.colliderect(bullet["rect"], wall["rect"]):
+                            print(f"Bullet {bullet_id} hit wall {wall_id}!")
+
+                            # Reduce wall health
+                            wall["health"] -= 1
+                            msg_type=8
+                            self.broadcast_func_to_all(struct.pack('!Hh', msg_type, bullet_id))
+                            # Remove bullet
+                            del self.bullets[bullet_id]
+
+                            # If wall is destroyed, remove it and notify clients
+                            if wall["health"] <= 0:
+                                del self.wall[wall_id]
+                                print(f"Wall {wall_id} destroyed!")
+                                msg_type = 9
+                                self.broadcast_func_to_all(struct.pack('!Hhh', msg_type, wall_id, bullet_id))
+
+                            break  # Stop checking other walls since bullet is destroyed
 
                     # Remove bullets if they go off-screen
                     if bullet_id in self.bullets:  # Ensure the bullet wasn't removed in collision check
-                        if bullet["rect"].x < 0 or bullet["rect"].x > SCREEN_WIDTH or bullet["rect"].y < 0 or bullet["rect"].y > SCREEN_HEIGHT:
+                        if bullet["rect"].x < 0 or bullet["rect"].x > SCREEN_WIDTH or bullet["rect"].y < 0 or bullet["rect"].y > SCREEN_HEIGHT+50:
                             del self.bullets[bullet_id]
 
             time.sleep(1 / FPS)  # Maintain the game FPS (30 updates per second)
@@ -110,4 +133,12 @@ class GameServer:
     def get_game_state(self):
         """Return a snapshot of the current game state (thread-safe)."""
         with self.lock:
-            return self.players.copy(), self.bullets.copy()
+            return self.players.copy(), self.bullets.copy(), self.wall.copy()
+
+    def send_wall_data(self):
+        msg_type = 7
+        for wall_id, wall in self.wall.items():
+            rect = wall["rect"]  # `rect` is a pygame.Rect object
+            x, y, width, height = rect.x, rect.y, rect.w, rect.h  # Extract properties correctly
+            packed_data = struct.pack('!Hhhhhh', msg_type, x, y, width, height, wall_id)
+            self.broadcast_func_to_all(packed_data)
