@@ -109,9 +109,9 @@ class Game:
             opponent.draw(self.screen)
         for cannonball in self.cannonballs:
             cannonball.draw(self.screen)
-        if self.received_all_walls:
-            for wall in self.Walls:
-                wall.draw(self.screen)
+        #if self.received_all_walls:
+        for wall in self.Walls:
+            wall.draw(self.screen)
         #use this to draw a grid on the screen for debugging purposes
         #self.draw_grid() 
         pygame.display.flip()
@@ -149,8 +149,6 @@ class Game:
             if id == opponent_id:
                 index = self.opponents_id.index(opponent_id)
                 # Update the opponent's position
-                self.opponents[index].x = x
-                self.opponents[index].y = y
                 self.opponents[index].set_direction(direction)
 
                 # Get the tank's rectangle center position
@@ -159,7 +157,7 @@ class Game:
                 print(f"Offset: {offsetx}, {offsety}")
 
                 # Create and append the cannonball with the adjusted position
-                cannonball = Cannonball(offsetx, offsety, direction, id, shot_id,CANNONBALL_SPEED)
+                cannonball = Cannonball(x, y, direction, id, shot_id,CANNONBALL_SPEED)
                 self.cannonballs.append(cannonball)
                 break
 
@@ -232,9 +230,10 @@ class Game:
                 print(f"Player {player_id} has been eliminated!")
 
     def handle_wall_data(self, x, y, width, height, wall_id):
+        for wall in self.Walls:
+            if wall.wall_id == wall_id:
+                return  # Skip if wall already exists
         self.Walls.append(Wall(x, y, width, height, wall_id))
-        if len(self.Walls) == len(wall_data):
-            self.received_all_walls = True
 
     def handle_wall_hit(self, bullet_id):
         for cannonball in self.cannonballs:
@@ -247,6 +246,7 @@ class Game:
         for wall in self.Walls:
             if wall.wall_id == wall_id:
                 self.Walls.remove(wall)
+                print(f"Client side Wall {wall_id} destroyed!")
                 break
         
 if __name__ == "__main__":

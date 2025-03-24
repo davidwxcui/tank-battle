@@ -133,7 +133,7 @@ class GameServer:
     def get_game_state(self):
         """Return a snapshot of the current game state (thread-safe)."""
         with self.lock:
-            return self.players.copy(), self.bullets.copy(), self.wall.copy()
+            return self.players.copy(), self.bullets.copy()
 
     def send_wall_data(self):
         msg_type = 7
