@@ -3,7 +3,7 @@ import time
 from settings import TANK_MOVE_DELAY
 
 class Tank:
-    def __init__(self, x=0, y=0, speed=10, image="./tank image/Screenshot_5.png", tank_id=0, walls=[]):
+    def __init__(self, x=50, y=50, speed=10, image="./tank image/Screenshot_5.png", tank_id=0, walls=[]):
         self.x = x
         self.y = y
         self.speed = speed
@@ -73,6 +73,16 @@ class Tank:
             self.direction = 2
             self.image = pygame.transform.rotate(self.original_image, 0)
 
+
+        if new_x < 50:
+            new_x = 50  # Prevent moving left off the screen
+        elif new_x + self.rect.width > 650+50:
+            new_x = 650+50 - self.rect.width  # Prevent moving right off the screen
+
+        if new_y < 50:
+            new_y = 50  # Prevent moving up off the screen
+        elif new_y + self.rect.height > 650+50:
+            new_y = 650+50 - self.rect.height  # Prevent moving down off the screen
         # Check if the tank will collide with any wall at the new position
         if not self.check_wall_collision(new_x, new_y, walls):
             self.x = new_x
