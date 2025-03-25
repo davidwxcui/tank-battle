@@ -265,12 +265,8 @@ def Client_receive_messages(conn):
                 game_instance.powerup = None
             
                 
-"""      
+   
         
-=======
-     
-        # Cannonball hit message
->>>>>>> main
         elif msg_type == 3:
             payload = TCP_helper.recv_chunks(conn, 6)
             if payload:
