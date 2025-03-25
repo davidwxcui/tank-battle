@@ -99,7 +99,7 @@ class GameServer:
                                     print(f"Player {player_id} has been eliminated!")
                                     del self.players[player_id]
                                     msg_type=6
-                                    self.broadcast_func_to_all(struct.pack('!Hh', msg_type, player_hit_id))
+                                    self.broadcast_func_to_all(struct.pack('!Hhh', msg_type, player_hitter_id, player_hit_id))
                                 break  # Stop checking once bullet hits someone
                     
                     # Check if the bullet hits any wall
@@ -125,7 +125,7 @@ class GameServer:
 
                     # Remove bullets if they go off-screen
                     if bullet_id in self.bullets:  # Ensure the bullet wasn't removed in collision check
-                        if bullet["rect"].x < 0 or bullet["rect"].x > SCREEN_WIDTH or bullet["rect"].y < 0 or bullet["rect"].y > SCREEN_HEIGHT+50:
+                        if bullet["rect"].x < 50 or bullet["rect"].x > 650+50 or bullet["rect"].y < 50 or bullet["rect"].y > 650+50:
                             del self.bullets[bullet_id]
 
             time.sleep(1 / FPS)  # Maintain the game FPS (30 updates per second)

@@ -91,23 +91,29 @@ def Server_Listener(conn, addr):
                                 except Exception as e:
                                     print(f"Error unpacking move message: {e}")
                         if data[0] == 2:
-                            shooter_id, x, y, direction = struct.unpack('!IhhH', data[1:])
-                            game_server.add_bullet(shooter_id, x, y, direction)
-                            print(game_server.get_game_state())
+                            try:
+                                shooter_id, x, y, direction = struct.unpack('!IhhH', data[1:])
+                                game_server.add_bullet(shooter_id, x, y, direction)
+                                print(game_server.get_game_state())
+                            except Exception as e:
+                                print(f"Error unpacking shoot message: {e}")
 
                     if data[0] == 11: # send out component's init message to client
-                        x=random.randint(100,700)
-                        y=random.randint(100,500)
-                        id = TCP_helper.generate_unique_id(ID_list)
-                        message = struct.pack('!Biii', 12, x, y,id)
-                        time.sleep(1)
-                        conn.sendall(message)
-                        game_server.add_player(id, x, y, 50, 50, 0)
-                        game_server.send_wall_data()
-                        print(game_server.get_game_state())
-                        message = struct.pack('!Biii', 13, x, y, id)
-                        broadcast_message(message, conn)
-                        print(f"new client connected id{id} x{x} y{y}")
+                        try:
+                            x=random.randint(100,700)
+                            y=random.randint(100,500)
+                            id = TCP_helper.generate_unique_id(ID_list)
+                            message = struct.pack('!Biii', 12, x, y,id)
+                            time.sleep(1)
+                            conn.sendall(message)
+                            game_server.add_player(id, x, y, 50, 50, 0)
+                            game_server.send_wall_data()
+                            print(game_server.get_game_state())
+                            message = struct.pack('!Biii', 13, x, y, id)
+                            broadcast_message(message, conn)
+                            print(f"new client connected id{id} x{x} y{y}")
+                        except Exception as e:
+                            print(f"Error sending init message: {e}")
     
         except ConnectionResetError:
             print(f"Connection reset by {addr}")       
@@ -225,12 +231,12 @@ def Client_receive_messages(conn):
         
         # Player eliminated message
         elif msg_type == 6:
-            payload = TCP_helper.recv_chunks(conn, 2)
+            payload = TCP_helper.recv_chunks(conn, 4)
             if payload:
-                player_id, = struct.unpack('!h', payload)
+                player_hitter_id, player_id, = struct.unpack('!hh', payload)
                 print(f"Player eliminated message received: player {player_id}")
                 game_instance_initialized.wait()
-                game_instance.handle_player_eliminated(player_id)
+                game_instance.handle_player_eliminated(player_hitter_id, player_id)
 
         elif msg_type == 7:
             payload = TCP_helper.recv_chunks(conn, 10)
@@ -272,7 +278,7 @@ def TCP_client(port=65432):
     while input_string == False and host == "":
         host = input("Enter the game server IP you want to join: ")
         input_string = TCP_helper.validate_input(host)
-
+    
     #sender_ip = socket.gethostbyname(socket.gethostname())
     #print(f"Sender IP address: {sender_ip}")
 

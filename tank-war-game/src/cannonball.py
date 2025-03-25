@@ -1,5 +1,5 @@
 import pygame
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, CANNONBALL_SPEED
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, CANNONBALL_SPEED, GAME_SCREEN_WIDTH, GAME_SCREEN_HEIGHT
 
 class Cannonball:
     def __init__(self, x, y, direction, shooter_id, shot_id, speed=CANNONBALL_SPEED):
@@ -38,7 +38,7 @@ class Cannonball:
             #print(f"Cannonball Position: ({self.x}, {self.y})")
 
             # Check if the cannonball is out of bounds
-            if self.x < 0 or self.x > 800 or self.y < 0 or self.y > 600:
+            if self.is_out_of_bounds():
                 self.active = False
 
     def draw(self, screen):
@@ -47,5 +47,6 @@ class Cannonball:
 
 
     def is_out_of_bounds(self):
-        return self.x < 0 or self.x > SCREEN_WIDTH or self.y < 0 or self.y > SCREEN_HEIGHT
+        return self.x < 50 or self.x > GAME_SCREEN_WIDTH+50 or self.y < 50 or self.y > GAME_SCREEN_HEIGHT+50
+
 

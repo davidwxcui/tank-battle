@@ -9,10 +9,11 @@ import struct
 import socket
 import random
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+import time
 
 # Define consta
 #Using this for debugging purposes
-WIDTH, HEIGHT = 650, 650 # Screen size
+WIDTH, HEIGHT = SCREEN_WIDTH, SCREEN_HEIGHT # Screen size
 CELL_SIZE = 50  # Size of each grid cell
 GRID_COLOR = (200, 200, 200)  # Light gray grid lines
 TEXT_COLOR = (255, 0, 0)  # Red text for coordinates
@@ -21,7 +22,7 @@ TEXT_COLOR = (255, 0, 0)  # Red text for coordinates
 
 
 class Game:
-    def __init__(self,x=0, y=0, id=0,client_name=None):
+    def __init__(self,x=50, y=50, id=0,client_name=None):
         pygame.init()
         pygame.font.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
@@ -37,6 +38,10 @@ class Game:
         self.shots = {} # dictionary to store the shots
         self.Walls = []
         self.received_all_walls = False
+        self.kills = 0
+        self.health= 1
+        self.game_state= 0 # 0 is start screen, 1 is game loop, 2 is end screen
+        self.waiting_for_start = True
 
         pygame.display.set_caption(f"Tank War - {id} - {client_name}")  # Change the title to "Tank War"
         print(f"Game initialized with id: {id}")
@@ -50,12 +55,47 @@ class Game:
                     coord_text = font.render(f"({x},{y})", True, TEXT_COLOR)
                     self.screen.blit(coord_text, (x + 2, y + 2))  # Offset text for visibility
 
+    def draw_start_screen(self):
+        self.screen.fill(UI_BOARD_COLOR)
+        font= pygame.font.Font(None, 36)
+        start_text = font.render("Press Enter to Start", True, TEXT_COLOR)
+        self.screen.blit(start_text, (SCREEN_WIDTH // 2 - start_text.get_width() // 2, SCREEN_HEIGHT // 2 - start_text.get_height() // 2))
+        pygame.display.flip()
 
-    def run(self,s=None):
+    def draw_end_screen(self):
+        self.screen.fill(UI_BOARD_COLOR)
+        font= pygame.font.Font(None, 36)
+        end_text = font.render("Game Over", True, TEXT_COLOR)
+        self.screen.blit(end_text, (SCREEN_WIDTH // 2 - end_text.get_width() // 2, SCREEN_HEIGHT // 2 - end_text.get_height() // 2))
+        kills_text = font.render(f"Kills: {self.kills}", True, TEXT_COLOR)
+        self.screen.blit(kills_text, (SCREEN_WIDTH // 2 - kills_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+        pygame.display.flip()
+
+
+    def run(self, s=None):
+        self.game_state = 0  # Ensure game state starts with the start screen
+        self.draw_start_screen()  # Show the start screen first
+        while self.waiting_for_start:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running =  False
+                    self.waiting_for_start = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:  # Start the game when Enter is pressed
+                        self.waiting_for_start = False
+                        self.game_state = 1  # Move to game loop state
+                        self.game_loop(s)
+
+    def game_loop(self, s=None):
         while self.running:
-            self.handle_events(s)
-            self.update(s)
-            self.draw()
+            if self.game_state == 0:
+                self.draw_start_screen()  # Redraw start screen if game state is 0
+            elif self.game_state == 1:
+                self.handle_events(s)
+                self.update(s)
+                self.draw()
+            elif self.game_state == 2:
+                self.draw_end_screen()  # Show end screen if game state is 2
             self.clock.tick(FPS)
         pygame.quit()
 
@@ -103,7 +143,9 @@ class Game:
 
 
     def draw(self):
-        self.screen.fill(BACKGROUND_COLOR)
+        #self.screen.fill(BACKGROUND_COLOR)
+        self.screen.fill(UI_BOARD_COLOR)
+        self.screen.fill(GAME_BOARD_COLOR, (50,50,650,650))
         self.tank.draw(self.screen)
         for opponent in self.opponents:
             opponent.draw(self.screen)
@@ -114,6 +156,12 @@ class Game:
             wall.draw(self.screen)
         #use this to draw a grid on the screen for debugging purposes
         #self.draw_grid() 
+        font= pygame.font.Font(None, 36)
+        health_text = font.render(f"Health: {self.health}", True, TEXT_COLOR)
+        self.screen.blit(health_text, (710, 550))
+        kills_text = font.render(f"Kills: {self.kills}", True, TEXT_COLOR)
+        self.screen.blit(kills_text, (710, 600))
+
         pygame.display.flip()
 
     def add_opponent(self, x, y, id):
@@ -205,17 +253,21 @@ class Game:
  
 
     def handle_cannonball_hit(self, player_hitter_id, player_hit_id, bullet_id):
+        if player_hit_id == self.id:
+            self.health -= 1
         for cannonball in self.cannonballs:
             if cannonball.shot_id == bullet_id:
                 self.cannonballs.remove(cannonball)
                 break
 
-    def handle_player_eliminated(self, player_id):
-        print(f"Client side Player {player_id} has been eliminated!")
+    def handle_player_eliminated(self, player_hitter_id, player_id):
         if player_id == self.id:
-            self.running = False
+            self.game_state = 2
             print(f"Player {player_id} has been eliminated!")
+            self.running = False
         else:
+            if player_hitter_id == self.id: 
+                self.kills += 1
             # Remove the opponent from the list if they are eliminated
             if player_id in self.opponents_id:
                 print(f"Player {player_id} is in the opponents id list")
@@ -249,6 +301,8 @@ class Game:
                 print(f"Client side Wall {wall_id} destroyed!")
                 break
         
+
+
 if __name__ == "__main__":
     game = Game()
     # game.add_opponent(200, 200)
