@@ -17,6 +17,9 @@ class Tank:
         self.health = 1
         self.alive = True
 
+        #attributes needed for powerup processing
+        self.active_powerup = None
+
 
     def move(self, keys):
         self.prev_x = self.x

@@ -3,6 +3,7 @@ import sys
 import pygame
 from tank import Tank
 from cannonball import Cannonball
+from Powerup import Powerup
 from settings import *
 import struct
 import socket
@@ -18,6 +19,7 @@ class Game:
         pygame.display.set_caption("Tank War Game")
         self.clock = pygame.time.Clock()
         self.tank = Tank(x,y)
+        self.powerup = None
         self.cannonballs = []
         self.running = True
         self.last_shot_time = 0
@@ -82,11 +84,20 @@ class Game:
     def draw(self):
         self.screen.fill(BACKGROUND_COLOR)
         self.tank.draw(self.screen)
+        
+        if self.powerup is not None:
+            self.powerup.draw(self.screen)
+
         for opponent in self.opponents:
             opponent.draw(self.screen)
         for cannonball in self.cannonballs:
             cannonball.draw(self.screen)
+
         pygame.display.flip()
+
+    def create_powerup(self, x, y, power_type):
+        if self.powerup is None:
+            self.powerup = Powerup(x,y, power_type)       
 
     def add_opponent(self, x, y, id):
         opponent = Tank(x, y)
@@ -142,6 +153,15 @@ class Game:
                 print("Collision detected")
                 self.handle_tank_collision()
                 break
+
+    def activate_powerup_on_collision(self):
+        if self.powerup is not None:
+            self.powerup.activate(self.tank)
+    
+    def deactivate_powerup_on_timeout(self):
+        if self.powerup is not None:
+            self.powerup.deactivate(self.tank)
+            
     
     def handle_tank_collision(self):
         self.tank.x = self.tank.prev_x

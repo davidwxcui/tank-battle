@@ -101,6 +101,8 @@ def Server_Listener(conn, addr):
                         message = struct.pack('!Biii', 13, x, y, id)
                         broadcast_message(message, conn)
                         print(f"new client connected id{id} x{x} y{y}")
+
+                    
     
         except ConnectionResetError:
             print(f"Connection reset by {addr}")       
@@ -190,6 +192,7 @@ def Client_receive_messages(conn):
                 game_instance_initialized.wait()
                 if not game_instance.existing_opponent(id):
                     game_instance.add_opponent(x, y, id)
+                    
 
         elif msg_type == 1:
             payload = TCP_helper.recv_chunks(conn, 10)
@@ -206,6 +209,52 @@ def Client_receive_messages(conn):
                 print(f"Shooting message received: ID {shooter_id}, bullet_id {bullet_id}, x {x}, y {y}, direction {direction}")
                 game_instance_initialized.wait()
                 game_instance.update_all_shooting(shooter_id, bullet_id, x, y, direction)
+
+
+        #Handle powerup messages on client side
+        elif msg_type == 20:
+            payload = TCP_helper.recv_chunks(conn, 12)
+            if payload:
+                x,y, powerup_id = struct.unpack("!iii", payload)
+                print(f"Powerup spawned at {x}, {y} with PID: {powerup_id}")
+
+                powerup_type = ""
+                if powerup_id == 1:
+                    powerup_type = "speed"
+                    
+                elif powerup_id == 2:
+                    powerup_type = "health"
+                else:
+                    print("something went wrong")
+                    
+                game_instance_initialized.wait()
+                #draw powerup asset
+                game_instance.create_powerup(x, y, powerup_type)
+
+        elif msg_type == 21:
+            payload = TCP_helper.recv_chunks(conn, 4)
+            if payload:
+                (player_id,) = struct.unpack("!i", payload)
+                if player_id == my_id:
+                    game_instance.activate_powerup_on_collision()
+                    print("Power up achieved!")
+                else:
+                    game_instance.powerup.is_visible = False #hack
+                    print(f"Another Player {player_id} collided with speed powerup")
+
+        elif msg_type == 22:
+            payload = TCP_helper.recv_chunks(conn, 4)
+            if payload:
+                (player_id,) = struct.unpack("!i", payload)
+                if player_id == my_id:
+                    game_instance.deactivate_powerup_on_timeout()
+                    print(f"Power up over!")
+                else:
+                    print(f"Player {player_id} powerup is over")
+
+                game_instance.powerup = None
+            
+                
 """      
         
         elif msg_type == 3:
