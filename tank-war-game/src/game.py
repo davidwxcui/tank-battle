@@ -149,9 +149,6 @@ class Game:
         self.screen.fill(UI_BOARD_COLOR)
         self.screen.fill(GAME_BOARD_COLOR, (50,50,650,650))
         self.tank.draw(self.screen)
-        
-        if self.powerup is not None:
-            self.powerup.draw(self.screen)
 
         for opponent in self.opponents:
             opponent.draw(self.screen)
@@ -160,10 +157,13 @@ class Game:
         #if self.received_all_walls:
         for wall in self.Walls:
             wall.draw(self.screen)
+
+        if self.powerup is not None:
+            self.powerup.draw(self.screen)
         #use this to draw a grid on the screen for debugging purposes
         #self.draw_grid() 
         font= pygame.font.Font(None, 36)
-        health_text = font.render(f"Health: {self.health}", True, TEXT_COLOR)
+        health_text = font.render(f"Health: {self.tank.health}", True, TEXT_COLOR)
         self.screen.blit(health_text, (710, 550))
         kills_text = font.render(f"Kills: {self.kills}", True, TEXT_COLOR)
         self.screen.blit(kills_text, (710, 600))

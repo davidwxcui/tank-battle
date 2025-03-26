@@ -75,7 +75,7 @@ class GameServer:
                 powerup_id = 2
 
             
-            x, y = random.randint(50, SCREEN_WIDTH - 50), random.randint(50, SCREEN_HEIGHT - 50)
+            x, y = random.randint(50, 50 + 650), random.randint(50, 50 + 650) #i couldn't find the variables related to the game board screen
             self.powerup = Powerup(x,y, powerup_type)
 
             print(f"Spawned {powerup_type} powerup at ({x}, {y})")
