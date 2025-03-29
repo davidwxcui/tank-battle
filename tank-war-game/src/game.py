@@ -41,7 +41,6 @@ class Game:
         self.Walls = []
         self.received_all_walls = False
         self.kills = 0
-        self.health= 1
         self.game_state= 0 # 0 is start screen, 1 is game loop, 2 is end screen
         self.waiting_for_start = True
 
@@ -163,7 +162,10 @@ class Game:
         #use this to draw a grid on the screen for debugging purposes
         #self.draw_grid() 
         font= pygame.font.Font(None, 36)
-        health_text = font.render(f"Health: {self.tank.health}", True, TEXT_COLOR)
+        if self.tank.health> 1000:
+            health_text = font.render(f"Invincible!", True, TEXT_COLOR)
+        else:
+            health_text = font.render(f"Health: {self.tank.health}", True, TEXT_COLOR)
         self.screen.blit(health_text, (710, 550))
         kills_text = font.render(f"Kills: {self.kills}", True, TEXT_COLOR)
         self.screen.blit(kills_text, (710, 600))
@@ -273,7 +275,7 @@ class Game:
 
     def handle_cannonball_hit(self, player_hitter_id, player_hit_id, bullet_id):
         if player_hit_id == self.id:
-            self.health -= 1
+            self.tank.health-=1;
         for cannonball in self.cannonballs:
             if cannonball.shot_id == bullet_id:
                 self.cannonballs.remove(cannonball)
