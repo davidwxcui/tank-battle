@@ -20,6 +20,7 @@ class GameServer:
         self.powerup = None
         self.powerup_respawn_delay = 10
         self.powerup_ready_to_respawn = False #if this is true, timer is set for next powerup spawn
+        self.powerup_id = None
         
         self.players = {}  # {player_id: {"rect": pygame.Rect, "dir": int, "health": int}}
         self.bullets = {}  # {bullet_id: {"rect": pygame.Rect, "owner": player_id}}
@@ -64,27 +65,27 @@ class GameServer:
 
     def spawn_powerup(self):
         if self.powerup is None:
+            
             powerup_types = ["speed", "health"]
-            powerup_id = 0 #what we will send over the network: i.e 1 = speed 2= health etc
             powerup_type = random.choice(powerup_types)
 
             if powerup_type == "speed":
-                powerup_id = 1
+                self.powerup_id = 1
 
             elif powerup_type == "health":
-                powerup_id = 2
+                self.powerup_id = 2
 
             
             x, y = random.randint(50, 50 + 650), random.randint(50, 50 + 650) #i couldn't find the variables related to the game board screen
             self.powerup = Powerup(x,y, powerup_type)
 
             print(f"Spawned {powerup_type} powerup at ({x}, {y})")
-            self.broadcast_powerup_state(powerup_id)
+            self.broadcast_powerup_state()
 
-    def broadcast_powerup_state(self, powerup_id):
+    def broadcast_powerup_state(self):
         if self.powerup and self.powerup.is_visible:
             msg_type = 20
-            packed_data = struct.pack("!Iiii", msg_type, self.powerup.x, self.powerup.y, powerup_id)
+            packed_data = struct.pack("!Iiii", msg_type, self.powerup.x, self.powerup.y, self.powerup_id)
             self.broadcast_func_to_all(packed_data)
 
 
@@ -200,7 +201,7 @@ class GameServer:
             #checking for power-up collection by any player
             if self.powerup and self.powerup.is_visible:
                 for player_id, player in self.players.items():
-                    if self.powerup.rect.colliderect(player["rect"]):
+                    if self.powerup and self.powerup.rect.colliderect(player["rect"]):
                         print(f"Player {player_id} collected a {self.powerup.power_type} power-up")
                         self.apply_power_up_effect(player_id, self.powerup.power_type)
                         self.powerup.is_visible = False #why do we need this?
