@@ -98,6 +98,8 @@ class Game:
             elif self.game_state == 2:
                 self.draw_end_screen()  # Show end screen if game state is 2
             self.clock.tick(FPS)
+        if s:
+            s.close()
         pygame.quit()
 
     def handle_events(self,s=None):
